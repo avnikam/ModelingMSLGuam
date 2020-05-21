@@ -42,5 +42,6 @@ The data used for creating this model was collected from the NOAA website for st
 
 # Description of Files
 
-'GuamMSLcode.Rmd': Source Code for the Project
-'1630000_meantrend.csv': Source file used for developing the code
+'GuamMSLcode.Rmd': Source Code for the Project.
+
+'1630000_meantrend.csv': Source file used for developing the code.
