@@ -1,0 +1,371 @@
+---
+title: "EAPS507 Guam Sea Level Modelling"
+author: "Avnika Manaktala"
+date: "12/05/2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**ORCID:** <div itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0003-4470-4037" href="https://orcid.org/0000-0003-4470-4037" target="orcid.widget" rel="noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon">https://orcid.org/0000-0003-4470-4037</a></div>
+
+**OpenID:https://esgf-node.llnl.gov/esgf-idp/openid/amanakta **
+
+
+# Purpose of the Project 
+
+This project was created to act as a final project submission for the EAPS507 course Introduction to Analysis and Computing with Geoscience Data offered by Purdue University for the Fall 2019-2020 semester. This project focuses on understanding the performance of different models in forecasting mean sea level changes. 
+
+# Introduction 
+
+Climate change is a problem that is affecting every part of our world today. While it's effects include soaring temperatures and extreme weather, small islands, such as Guam are most concerned with the implications sea level change has on it's coastal areas. Guam is surrounded by coral reef ecosystems that protect the island from flooding and typhoons *(USEPA, August 2016)*, and the sea level rise along with the increased acidity of the water is destroying these ecosystems and exposing the island to the threats of climate change. 
+
+While the sea level is expected to rise by 3 feet over the next century *(USEPA, August 2016)*, it is important to be prepared for extreme changes. It is therefore important to be prepared and anticipate changes in the monthly mean sea level so sufficient preparation can be done to protect the island's coastal regions from damage from flooding. Creating an accurate model of monthly mean sea level will provide a preview of the changes that could be expected over the next few years.
+
+This project will evaluate the performance of several models so an informed decision can be made on which type of model should be used to further study the mean sea level data.
+
+# The Data
+
+The data that will be examined for this evaluation is the mean sea level data for Guam recorded by **National Oceanic and Atmospheric Administration (NOAA)** for since 1948. The details for the data are as follows:
+
+*Station number: 1630000
+
+*Location: Apra Harbour, Guam 
+
+*Date Station was Established: March 11, 1948
+
+*Latitude of Station: 	13° 26.6' N
+
+*Longitude of Station: 144° 39.4' E
+
+*Data Source: [Click Here for Data Source](https://tidesandcurrents.noaa.gov/sltrends/sltrends_station.shtml?id=1630000)
+
+All information from this site is accurate as of December 5th 2019. 
+
+# Metadata 
+
+This evaluation was created to understand what is the best type of model that should be used to accurately predict monthly mean sea level changes. This is so that the coastal land use changes can accurately be predicted to prepare small islands, such as Guam, for the impacts of sea level rise cause by climate change. For the purpose of this study, data from the Apra Harbor in Guam was used to create this model and therefore the result of this study is limited to this location. 
+
+The data used for creating this model was collected from the NOAA website for station number 1630000, Apra Harbor Guam, and it is accurate as of December 5th 2019 which is when this evaluation was performed. The program used for the generation of this model was R Studio Version 1.2.1335 which is an integrated development environment for the R programming language which is freely available for download with an open source license from this [link](https://rstudio.com/products/rstudio/download/). This software has been used to process the data collected from the NOAA using several statistical techniques to create linear, loess and the kNN method of Statistical Machine Learning. 
+
+# Evaluation of Mean Sea Level Modelling
+The analysis of the model types begins from here.  
+
+## 1. Loading the Guam Sea Level data 
+
+The following code shows how to load the Guam Sea Level data from previous databases and filter it for the values that are useful to us, i.e. for Monthly_MSL values from 1948 onwards.
+
+This first bit of code loads all the useful packages needed for this analysis. 
+
+```{r}
+#Importing libraries
+
+library(tidyverse)
+library(lubridate)
+library(readr)
+library("class")
+library(gmodels)
+library(caret)
+library(fpp2)
+```
+
+This part of the code imports the data that needs to be analysed. The comments in the code below show the parts of the code that need to be changed in case another dataframe needs to be imported. 
+
+```{r}
+#Loading and preaparing dataset for evaluation
+
+GUAMDATA <- read_csv("1630000_meantrend.csv") #Importing data
+mydata<- na.omit(GUAMDATA) 
+
+#Setting months in sequence 
+modeldata <- mydata %>%
+  mutate(Months= row_number())
+
+view(modeldata) #Opens up cleaned dataframe
+
+#Finding out length of the dataframe
+length(modeldata$Months)
+```
+
+## 2. Plotting existing Mean Sea Level data points 
+
+First, it is important to visualise the data and in this case a scatter plot with adjoining lines should be good for this. 
+```{r}
+plot(modeldata$Months, modeldata$Monthly_MSL, pch=16, main="Monthly Mean Sea Level Variation From 1948-2018", xlab="Months", ylab="Mean Sea Level (m)")
+lines(modeldata$Months, modeldata$Monthly_MSL, lwd=2, col="gold")
+```
+
+## 3. Linear model
+
+```{r}
+#linear model fit 
+plot(modeldata$Months, modeldata$Monthly_MSL, pch=16, main="Monthly Mean Sea Level Variation From 1948-2018 with Linear Fit", xlab="Months", ylab="Mean Sea Level (m)")
+lines(modeldata$Months, modeldata$Monthly_MSL, lwd=2, col="gold")
+#Fitting a linear model
+fit<-lm(Monthly_MSL~Months, modeldata)
+abline(fit, lwd=2, col="blue")
+legend("bottomright", col=c("gold", "blue"), lty=c( 1, 1), pch=c(16), 
+       c("Mean Sea Level", "Linear Regression"),
+       bg="white", cex=.6)
+```
+
+```{r}
+#Analysing Linear Fit
+print(summary(fit))
+```
+According to this analysis the maximum sea level rise was 0.183m and the fall was -0.435m. This analysis also shows that there is a small positive slope, which means that over the years the sea level is slowly increasing even with the small standard error of 1.323e-05. This fit seems to be not very good as the R squared value is close to 0. The R squared value generally gives an idea of how well the dataset fits into the linear regression model. If the value is close to 0 the linear model does not explain the values much, however if it is close to 1, the linear model explains the model well. 
+
+
+## 4. Loess Fit 
+The following code attempt to use the loess model to fit the monthly mean sea level data. 
+
+```{r}
+#Loess fit
+plot(modeldata$Months, modeldata$Monthly_MSL, pch=16, main="Monthly Mean Sea Level Variation From 1948-2018 with Loess Fit", xlab="Months", ylab="Mean Sea Level (m)")
+lines(modeldata$Months, modeldata$Monthly_MSL, lwd=2, col="gold")
+fit.loess <- loess(Monthly_MSL ~ Months, modeldata, span=0.1, degree=2) #The span can be changed to any value from 0-1 in this line
+predict.loess <- predict(fit.loess, modeldata$Months, se=TRUE)
+lines(modeldata$Months,predict.loess$fit, type='l', lty=1, lwd=2, col="magenta")
+
+legend("bottomright", col=c("gold","magenta"), lty=c( 1,1), pch=c(16), 
+       c("Mean Sea Level","Loess fit"), 
+       bg="white", cex=.6)
+```
+
+```{r}
+print(summary(fit.loess))
+```
+The loess fit seems to be able to represent the mean sea level values pretty well as the residual standard error for this fit is pretty small (0.0663). however, there could be a better model that can be used to predict the dataset. 
+
+## 5. Cross Validation using kNN method
+
+Although the loess predict model (p1) worked pretty well it is important to cross validate the model performace and optimise the production. For this part I will be using kNN algorithms to compare the predicted values to a set of known values. A confusion matrix will be used to get a better idea of the errors. First we will normalise the values in the cell below and reconfirm that we have the correct number of values for analysis. 
+
+**Run this chunk of code**
+```{r}
+##Normalize 
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x))) }
+modeldata_n <- as.data.frame(lapply(modeldata[0:7], normalize))
+summary(modeldata_n$Monthly_MSL)
+length((modeldata_n$Monthly_MSL))
+```
+In the next part we will divide our dataset into two groups, the train group and the test group. The train group will be the set of data that will be observed to predict values. The train group is the set of values that are generated and compared over the actual dataset. 
+
+```{r}
+#Train and Test data set
+modeldata_train <- modeldata_n[0:700,] #Length of train data can be changed here by changing the start value (as of now 0) and the end value (as of now 700)
+modeldata_test <- modeldata_n[701:815,] #Length of test data can be changed here by changing the start value (as of now 701) and the end value (as of now 815)
+
+modeldata_train_labels <- modeldata_n[0:700,1] #To be changed to match length of modeldata_train
+modeldata_test_labels <- modeldata_n[701:815,1] #To be changed to match length of modeldata_test
+length(modeldata_test_labels)
+dim(modeldata_train)
+dim(modeldata_test)
+
+cl=modeldata_train_labels
+length(modeldata_train_labels)
+modeldata_test_pred <- knn(train=modeldata_train, test=modeldata_test, cl=modeldata_train_labels, k= (sqrt(900)))
+
+```
+With this new model it is important to find out the performance values as shown below. 
+
+```{r}
+# Evaluate model performance 
+CrossTable(x= modeldata_test_labels, y= modeldata_test_pred, prop.chisq = FALSE)
+```
+
+```{r}
+#Cross Validation
+
+set.seed(0)
+model <- train(Monthly_MSL ~ ., modeldata,
+               method = "lm",
+               trControl = trainControl(method = "cv",
+                                        number = 10,
+                                        verboseIter = FALSE))
+model
+
+p <- predict(model, modeldata)
+error <- p - modeldata$Monthly_MSL
+rmse_xval <- sqrt(mean(error^2)) ## xval RMSE
+rmse_xval
+```
+
+As the above evaluation shows this model still needs some work to ensure it accurately predicts mean sea level data points for the dataset. This may not be the best model to predict changes in mean sea level data.
+
+## 6. Removing Outliers
+
+Since the methods above did not produce favorable results, other models for forecasting should be considered. Before other models are developed it could be beneficial to remove the outliers from the data. 
+
+To understand which points are the outliers, a boxplot could be helpful in identifying extreme data points. 
+
+```{r}
+#Boxplot - Visualising Outliers
+boxplot(modeldata$Monthly_MSL, main= "Mean Monthly Mean Sea Level Change in Guam", 
+        xlab= "Meters",
+        ylab= "Mean Sea Level",
+        col= "orange", border="brown", horizontal= TRUE, notch= TRUE)
+```
+As seen above, there are four outliers that need to be removed and the code chunk below does so. 
+```{r}
+# Removing Outliers 
+outliers<- boxplot(modeldata$Monthly_MSL, plot= FALSE)$out
+
+modeldata_clean<- modeldata[-which(modeldata$Monthly_MSL %in% outliers),]
+
+boxplot(modeldata_clean$Monthly_MSL, main= "Mean Monthly Mean Sea Level Change in Guam Without Outliers", 
+        xlab= "Meters",
+        ylab= "Mean Sea Level",
+        col= "orange", border="brown", horizontal= TRUE, notch= TRUE)
+
+print(outliers)
+
+```
+```{r}
+#Clean Total Plot 
+plot(modeldata_clean$Months, modeldata_clean$Monthly_MSL, pch=16, main="Monthly Mean Sea Level Variation From 1948-2018 Without Outliers", xlab="Months", ylab="Mean Sea Level (m)")
+lines(modeldata_clean$Months, modeldata_clean$Monthly_MSL, lwd=2, col="gold")
+```
+Since the outliers have been removed a linear interpolation for the data is necessary as done in the code chunk below. 
+```{r}
+#interpolation
+timestep<- seq(1,815,1)
+par(mfrow=c(2,1))
+MSL_linear <- approx(modeldata_clean$Months,modeldata_clean$Monthly_MSL, timestep)
+plot(MSL_linear, type= "l", main = "Linear Interpolation of Mean Sea Level Data", 
+     xlab = "Months", ylab= "Mean Sea Level (m)")
+```
+
+## 7. Time Series Analysis
+
+The next code chunk creates a time series object that will be used in future time series analysis. 
+```{r}
+#TS object
+modeldata_ts<- ts(modeldata_clean$Monthly_MSL, start=c(1,1), frequency = 12)
+```
+
+It is important to understand if there is any seasonality in the data that we are studying in order to produce accurate models for forecasting. The code chunk below shows the sesonal plots for this dataset. 
+```{r}
+#FFT Season Plots
+ggseasonplot(modeldata_ts, year.labels=TRUE, year.labels.left=TRUE, labelgap = 0.1) +
+  ylab("Mean Sea Level Change (m)") +
+  ggtitle("Seasonal plot: Monthly Mean Sea Level") 
+
+ggseasonplot(modeldata_ts, polar=TRUE) +
+  ylab("Mean Sea Level Change (m)") +
+  ggtitle("Polar seasonal plot: Monthly Mean Sea Level")
+```
+As per the plots above there is no obvious seasonality in the data apart from the gradual total increase in mean sea level.
+
+The next part of the code shows the seasonal and trend decomposition of the data set with elements of linear trend, seasonality and remainder functions. 
+```{r}
+#STL
+MSL_STL<- modeldata_ts %>%
+  stl(t.window = NULL, robust = TRUE, s.window = "periodic")
+autoplot(MSL_STL, main= "Seasonal and Trend Decomposition Using Loess Plots for Mean Sea Level")
+
+```
+The ACF, or autocorrelation function measures the correlation between the lagged values of the time series.
+
+```{r}
+#ACF
+MSL_acf<- acf(modeldata_clean$Monthly_MSL, lag.max =200, plot = FALSE)
+plot(MSL_acf, main = "Autocorrelation Function for Monthly MSL", col= "red")
+```
+The plot above shows that the data above is non stationary as it moves towards zero fairly slowly.
+
+To check if some of the patterns in the data are oscillatory, the fast Fourier Transform method could be used in the frequency domain as demonstrated below. 
+```{r}
+#FFT Spectrogram
+modeldata_spec<- spec.pgram(modeldata_clean$Monthly_MSL, demean = TRUE, plot = FALSE)
+plot(modeldata_spec, log = "no")
+```
+
+```{r}
+#FFT Spectrogram- Zoomed In 
+plot(modeldata_spec, log = "no", xlim= c(0,0.1))
+```
+According to the plot above the major oscillatory patterns are at 0 cycles per month. 
+
+## 8. ARIMA Modelling 
+
+The next set of code shows the plots with the results of the ARIMA models.
+
+This first set shows the ARIMA model of the total dataset. 
+```{r}
+#ARIMA
+MSL_ARIMA<- auto.arima(modeldata_ts, seasonal = TRUE)
+MSL_ARIMA %>% forecast(h=24) %>% autoplot(include= 100, main= "ARIMA Model of Mean Sea Level",
+                                          xlab= "Months", ylab= "Mean Sea Level (m)")
+MSL_ARIMA
+```
+The 
+
+```{r}
+# ARIMA Linear Trend
+
+MSL_Trend<-MSL_STL$time.series[, "trend"] 
+Trend_ARIMA<- auto.arima(MSL_Trend, seasonal = TRUE)
+Trend_ARIMA %>% forecast(h=24) %>% autoplot(include= 100, main= "ARIMA Model of Linear Trend of STL",
+                                          xlab= "Months", ylab= "Mean Sea Level (m)")
+Trend_ARIMA
+```
+
+
+```{r}
+#ARIMA Seasonal 
+
+MSL_seasonal<- MSL_STL$time.series[, "seasonal"]
+Seasonal_ARIMA<- auto.arima(MSL_seasonal, seasonal = TRUE)
+Seasonal_ARIMA %>% forecast(h=24) %>% autoplot(include= 100, main= "ARIMA Model of Remainder of STL",
+                                          xlab= "Months", ylab= "Mean Sea Level (m)")
+Seasonal_ARIMA
+```
+
+
+```{r}
+#ARIMA Remainder 
+MSL_remain<- MSL_STL$time.series[, "remainder"]
+Remain_ARIMA<- auto.arima(MSL_remain, seasonal = TRUE)
+Remain_ARIMA %>% forecast(h=24) %>% autoplot(include= 100, main= "ARIMA Model of Remainder of STL",
+                                          xlab= "Months", ylab= "Mean Sea Level (m)")
+Remain_ARIMA
+```
+
+According to the ARIMA models above and the AIC and BIC scores, the ARIMA model for the linear model has the lowst scores which indicates that this is the most parsimonious model out of the other models including the one for the whole dataset. This ARIMA model for the linear trend shows that the mean sea level is due to increase and flatten out over the next 2 years. 
+
+# Conclusion
+
+For the purpose of this evaluation, the ARIMA model forecast for the linear trend is the best model that can be used to predict values based on the current amount of data, however this evaluation would benefit from deeper analysis of each of the modeling techniques to accurately predict the variation in mean sea level data in Guam. The linear, loess and KNN method, while able to predict mean sea level values in Guam, are not the most accurate as they do not implement the rigorous data processing methods as used in time series analysis such as ARIMA. 
+
+For future references, other models should be explored and their performance should be studied in greater detail to truly understand the best modelling technoques to forecast mean sea level data. 
+
+# References:
+
+1. US EPA. (2016). What Climate Change Means For Guam. What Climate Change Means For Guam. Retrieved from https://19january2017snapshot.epa.gov/sites/production/files/2016-09/documents/climate-change-gu.pdf
+
+2. NOAA. (n.d.). Relative Sea Level Trend 1630000 Apra Harbor, Guam. Retrieved from
+https://tidesandcurrents.noaa.gov/sltrends/sltrends_station.shtml?id=1630000 
+
+3. R Studio. (2009). Retrieved from https://rstudio.com/products/rstudio/download/
+
+4. Guest Blog. (2015, August 19). Retrieved from 
+https://www.analyticsvidhya.com/blog/2015/08/learning-concept-knn-algorithms-programming/
+
+5. Gatto, L. (2019, April 24). An Introduction to Machine Learning with R. Retrieved October 8, 2019, from https://lgatto.github.io/IntroMachineLearningWithR/supervised-learning.html.
+
+6. Ubiqum Code Academy. (n.d.). Removing Outliers- Quick & Dirty. Retrieved December 4, 2019, from http://rpubs.com/Mentors_Ubiqum/removing_outliers
+
+7. Hyndmam, R. (2014, November 4). Seasonal Periods. Retrieved December 5, 2019 from https://robjhyndman.com/hyndsight/seasonal-periods/ 
+
+8. Hyndman, R.J., & Athanasopoulos, G. (2018) Forecasting: principles and practice, 2nd edition, OTexts: Melbourne, Australia. OTexts.com/fpp2. Retrieved December 5 2019 from https://otexts.com/fpp2/.
+
+
+
+
+
